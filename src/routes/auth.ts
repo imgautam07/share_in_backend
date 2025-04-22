@@ -43,6 +43,7 @@ router.post('/signup', async (req: Request, res: Response) => {
 
     res.status(201).json({ token });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -72,6 +73,7 @@ router.post('/signin', async (req: Request, res: Response) => {
 
     res.json({ token, refreshToken });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -92,6 +94,7 @@ router.post('/refresh-token', async (req: Request, res: Response) => {
 
     res.json({ token: newToken });
   } catch (error) {
+    console.log(error);
     res.status(401).json({ message: 'Invalid refresh token' });
   }
 });
