@@ -7,6 +7,8 @@ import path from 'path';
 import swaggerUi from 'swagger-ui-express';
 import authRoutes from './routes/auth';
 import filesRoutes from './routes/files';
+import morgan from 'morgan';
+import helmet from 'helmet';
 
 dotenv.config();
 
@@ -29,6 +31,9 @@ mongoose.connect(process.env.DB_URL || 'mongodb://localhost:27017/auth-app')
 
 app.use('/api/auth', authRoutes);
 app.use("/api/files", filesRoutes);
+
+app.use(helmet())
+app.use(morgan('tiny'))
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });

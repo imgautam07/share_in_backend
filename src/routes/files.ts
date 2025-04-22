@@ -19,7 +19,7 @@ AWS.config.update({
 const s3 = new AWS.S3({
   endpoint: process.env.AWS_URL ? new AWS.Endpoint(process.env.AWS_URL) : undefined
 });
-const BUCKET_NAME = 'share_in';
+const BUCKET_NAME = 'voizme';
 
 
 const upload = multer({

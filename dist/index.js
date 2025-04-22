@@ -12,6 +12,8 @@ const path_1 = __importDefault(require("path"));
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const files_1 = __importDefault(require("./routes/files"));
+const morgan_1 = __importDefault(require("morgan"));
+const helmet_1 = __importDefault(require("helmet"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
@@ -24,6 +26,8 @@ mongoose_1.default.connect(process.env.DB_URL || 'mongodb://localhost:27017/auth
     .catch((err) => console.error('MongoDB connection error:', err));
 app.use('/api/auth', auth_1.default);
 app.use("/api/files", files_1.default);
+app.use((0, helmet_1.default)());
+app.use((0, morgan_1.default)('tiny'));
 app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
 });
