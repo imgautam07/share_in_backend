@@ -267,6 +267,24 @@
         }
       }
     },
+    "/api/auth/verify-token": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Verify Token from header",
+        "security": [],
+        "requestBody": {},
+        "responses": {
+          "200": {
+            "description": "User is verified!"
+          },
+          "400": {
+            "description": "User not authenticated"
+          }
+        }
+      }
+    },
     "/api/auth/refresh-token": {
       "post": {
         "tags": [
