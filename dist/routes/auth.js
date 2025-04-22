@@ -8,40 +8,6 @@ const express_1 = __importDefault(require("express"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = __importDefault(require("../models/User"));
 const router = express_1.default.Router();
-/**
- * @swagger
- * /api/auth/profile/{uid}:
- *   get:
- *     summary: Get user profile
- *     description: Retrieves a user profile by user ID
- *     tags: [Auth]
- *     parameters:
- *       - in: path
- *         name: uid
- *         required: true
- *         description: User ID
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: User profile information
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 _id:
- *                   type: string
- *                 email:
- *                   type: string
- *                 createdAt:
- *                   type: string
- *                   format: date-time
- *       404:
- *         description: User not found
- *       500:
- *         description: Server error
- */
 router.get('/profile/:uid', async (req, res) => {
     try {
         const user = await User_1.default.findById(req.params.uid).select('-password');
@@ -54,47 +20,6 @@ router.get('/profile/:uid', async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
-/**
- * @swagger
- * /api/auth/signup:
- *   post:
- *     summary: Register a new user
- *     description: Create a new user account and receive a JWT token
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *               password:
- *                 type: string
- *                 format: password
- *                 minLength: 6
- *               name:
- *                 type: string
- *     responses:
- *       201:
- *         description: User created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 token:
- *                   type: string
- *       400:
- *         description: User already exists
- *       500:
- *         description: Server error
- */
 router.post('/signup', async (req, res) => {
     try {
         const { email, password, name } = req.body;
@@ -117,48 +42,6 @@ router.post('/signup', async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
-/**
- * @swagger
- * /api/auth/signin:
- *   post:
- *     summary: User login
- *     description: Authenticate a user and receive JWT tokens
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *               password:
- *                 type: string
- *                 format: password
- *     responses:
- *       200:
- *         description: Login successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 token:
- *                   type: string
- *                   description: JWT access token
- *                 refreshToken:
- *                   type: string
- *                   description: JWT refresh token
- *       400:
- *         description: Invalid credentials
- *       500:
- *         description: Server error
- */
 router.post('/signin', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -178,37 +61,6 @@ router.post('/signin', async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
-/**
- * @swagger
- * /api/auth/refresh-token:
- *   post:
- *     summary: Refresh JWT token
- *     description: Get a new access token using the refresh token
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - refreshToken
- *             properties:
- *               refreshToken:
- *                 type: string
- *     responses:
- *       200:
- *         description: New token generated
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 token:
- *                   type: string
- *       401:
- *         description: Invalid refresh token
- */
 router.post('/refresh-token', async (req, res) => {
     try {
         const { refreshToken } = req.body;

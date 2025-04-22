@@ -2,38 +2,38 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import path from 'path';
-import fs from 'fs-extra';
 import authRoutes from './routes/auth';
-import fileRoutes from './routes/files';
+import swaggerUi from 'swagger-ui-express';
+import path from 'path';
+import fs from 'fs';
 
 dotenv.config();
 
 const app = express();
 
-
+// Middleware
 app.use(cors());
 app.use(express.json());
 
+// Load Swagger Document
+const swaggerDocument = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '../docs/swagger.json'), 'utf8')
+);
 
-const uploadsDir = path.join(__dirname, '../uploads');
-fs.ensureDirSync(uploadsDir);
+// Swagger UI route
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-
-app.use('/uploads', express.static(uploadsDir));
-
-
+// Connect to MongoDB
 console.log(process.env.DB_URL);
 
 mongoose.connect(process.env.DB_URL || 'mongodb://localhost:27017/auth-app')
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => console.error('MongoDB connection error:', err));
 
-
+// Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/files', fileRoutes);
 
-
+// Health check route
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
@@ -41,4 +41,5 @@ app.get('/health', (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`API Documentation available at http://localhost:${PORT}/api-docs`);
 });
