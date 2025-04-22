@@ -18,6 +18,7 @@ router.get('/profile/:uid', async (req: Request, res: Response) => {
 
 router.post('/signup', async (req: Request, res: Response) => {
   try {
+    console.log(req.body)
     const { email, password, name } = req.body;
 
     const existingUser = await User.findOne({ email });
@@ -25,6 +26,7 @@ router.post('/signup', async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'User already exists' });
     }
     const salt = await bcrypt.genSalt(10);
+    console.log(password)
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const user = new User({
@@ -61,14 +63,12 @@ router.post('/signin', async (req: Request, res: Response) => {
     }
     const token = jwt.sign(
       { userId: user._id },
-      process.env.JWT_SECRET || 'fallback-secret',
-      { expiresIn: '1h' }
+      process.env.JWT_SECRET || 'fallback-secret'
     );
 
     const refreshToken = jwt.sign(
       { userId: user._id },
       process.env.REFRESH_TOKEN_SECRET || 'refresh-secret',
-      { expiresIn: '365d' }
     );
 
     res.json({ token, refreshToken });

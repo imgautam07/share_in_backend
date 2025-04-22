@@ -22,12 +22,14 @@ router.get('/profile/:uid', async (req, res) => {
 });
 router.post('/signup', async (req, res) => {
     try {
+        console.log(req.body);
         const { email, password, name } = req.body;
         const existingUser = await User_1.default.findOne({ email });
         if (existingUser) {
             return res.status(400).json({ message: 'User already exists' });
         }
         const salt = await bcryptjs_1.default.genSalt(10);
+        console.log(password);
         const hashedPassword = await bcryptjs_1.default.hash(password, salt);
         const user = new User_1.default({
             email,
@@ -39,6 +41,7 @@ router.post('/signup', async (req, res) => {
         res.status(201).json({ token });
     }
     catch (error) {
+        console.log(error);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -53,11 +56,12 @@ router.post('/signin', async (req, res) => {
         if (!isValidPassword) {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
-        const token = jsonwebtoken_1.default.sign({ userId: user._id }, process.env.JWT_SECRET || 'fallback-secret', { expiresIn: '1h' });
-        const refreshToken = jsonwebtoken_1.default.sign({ userId: user._id }, process.env.REFRESH_TOKEN_SECRET || 'refresh-secret', { expiresIn: '365d' });
+        const token = jsonwebtoken_1.default.sign({ userId: user._id }, process.env.JWT_SECRET || 'fallback-secret');
+        const refreshToken = jsonwebtoken_1.default.sign({ userId: user._id }, process.env.REFRESH_TOKEN_SECRET || 'refresh-secret');
         res.json({ token, refreshToken });
     }
     catch (error) {
+        console.log(error);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -72,6 +76,7 @@ router.post('/refresh-token', async (req, res) => {
         res.json({ token: newToken });
     }
     catch (error) {
+        console.log(error);
         res.status(401).json({ message: 'Invalid refresh token' });
     }
 });
