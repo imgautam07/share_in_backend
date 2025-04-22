@@ -3,30 +3,113 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = __importDefault(require("express"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
+const express_1 = __importDefault(require("express"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = __importDefault(require("../models/User"));
 const router = express_1.default.Router();
-// Sign Up
+/**
+ * @swagger
+ * /api/auth/profile/{uid}:
+ *   get:
+ *     summary: Get user profile
+ *     description: Retrieves a user profile by user ID
+ *     tags: [Auth]
+ *     parameters:
+ *       - in: path
+ *         name: uid
+ *         required: true
+ *         description: User ID
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User profile information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+router.get('/profile/:uid', async (req, res) => {
+    try {
+        const user = await User_1.default.findById(req.params.uid).select('-password');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        res.json(user);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+/**
+ * @swagger
+ * /api/auth/signup:
+ *   post:
+ *     summary: Register a new user
+ *     description: Create a new user account and receive a JWT token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 6
+ *               name:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *       400:
+ *         description: User already exists
+ *       500:
+ *         description: Server error
+ */
 router.post('/signup', async (req, res) => {
     try {
-        const { email, password } = req.body;
-        // Check if user already exists
+        const { email, password, name } = req.body;
         const existingUser = await User_1.default.findOne({ email });
         if (existingUser) {
             return res.status(400).json({ message: 'User already exists' });
         }
-        // Hash password
         const salt = await bcryptjs_1.default.genSalt(10);
         const hashedPassword = await bcryptjs_1.default.hash(password, salt);
-        // Create new user
         const user = new User_1.default({
             email,
+            name,
             password: hashedPassword
         });
         await user.save();
-        // Generate JWT
         const token = jsonwebtoken_1.default.sign({ userId: user._id }, process.env.JWT_SECRET || 'fallback-secret', { expiresIn: '1h' });
         res.status(201).json({ token });
     }
@@ -34,26 +117,110 @@ router.post('/signup', async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
-// Sign In
+/**
+ * @swagger
+ * /api/auth/signin:
+ *   post:
+ *     summary: User login
+ *     description: Authenticate a user and receive JWT tokens
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *                   description: JWT access token
+ *                 refreshToken:
+ *                   type: string
+ *                   description: JWT refresh token
+ *       400:
+ *         description: Invalid credentials
+ *       500:
+ *         description: Server error
+ */
 router.post('/signin', async (req, res) => {
     try {
         const { email, password } = req.body;
-        // Check if user exists
         const user = await User_1.default.findOne({ email });
         if (!user) {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
-        // Verify password
         const isValidPassword = await bcryptjs_1.default.compare(password, user.password);
         if (!isValidPassword) {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
-        // Generate JWT
         const token = jsonwebtoken_1.default.sign({ userId: user._id }, process.env.JWT_SECRET || 'fallback-secret', { expiresIn: '1h' });
-        res.json({ token });
+        const refreshToken = jsonwebtoken_1.default.sign({ userId: user._id }, process.env.REFRESH_TOKEN_SECRET || 'refresh-secret', { expiresIn: '365d' });
+        res.json({ token, refreshToken });
     }
     catch (error) {
         res.status(500).json({ message: 'Server error' });
+    }
+});
+/**
+ * @swagger
+ * /api/auth/refresh-token:
+ *   post:
+ *     summary: Refresh JWT token
+ *     description: Get a new access token using the refresh token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: New token generated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *       401:
+ *         description: Invalid refresh token
+ */
+router.post('/refresh-token', async (req, res) => {
+    try {
+        const { refreshToken } = req.body;
+        if (!refreshToken) {
+            return res.status(401).json({ message: 'Refresh token required' });
+        }
+        const decoded = jsonwebtoken_1.default.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET || 'refresh-secret');
+        const newToken = jsonwebtoken_1.default.sign({ userId: decoded.userId }, process.env.JWT_SECRET || 'fallback-secret', { expiresIn: '1h' });
+        res.json({ token: newToken });
+    }
+    catch (error) {
+        res.status(401).json({ message: 'Invalid refresh token' });
     }
 });
 exports.default = router;

@@ -4,8 +4,6 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User';
 
 const router = express.Router();
-
-
 router.get('/profile/:uid', async (req: Request, res: Response) => {
   try {
     const user = await User.findById(req.params.uid).select('-password');
@@ -77,7 +75,6 @@ router.post('/signin', async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
 
 router.post('/refresh-token', async (req: Request, res: Response) => {
   try {
