@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import express, { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import auth from '../middleware/auth';
 import User from '../models/User';
 
 const router = express.Router();
@@ -36,11 +37,9 @@ router.post('/signup', async (req: Request, res: Response) => {
     });
 
     await user.save();
-
     const token = jwt.sign(
-      { userId: user._id },
+      { userId: user._id, name: user.name, email: user.email },
       process.env.JWT_SECRET || 'fallback-secret',
-      { expiresIn: '1h' }
     );
 
     res.status(201).json({ token });
@@ -62,8 +61,8 @@ router.post('/signin', async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
     const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || 'fallback-secret'
+      { userId: user._id, name: user.name, email: user.email },
+      process.env.JWT_SECRET || 'fallback-secret',
     );
 
     const refreshToken = jwt.sign(
@@ -97,6 +96,11 @@ router.post('/refresh-token', async (req: Request, res: Response) => {
     console.log(error);
     res.status(401).json({ message: 'Invalid refresh token' });
   }
+});
+
+
+router.post('/verify-token', auth, async (req: Request, res: Response) => {
+  res.sendStatus(200);
 });
 
 export default router;
