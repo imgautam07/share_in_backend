@@ -7,8 +7,12 @@
   },
   "servers": [
     {
-      "url": "http://localhost:3000",
-      "description": "Local Development Server"
+      "url": "http://3.12.1.104:4000",
+      "description": "AWS Server"
+    },
+    {
+      "url": "http://localhost:4000",
+      "description": "Local Server"
     }
   ],
   "components": {
