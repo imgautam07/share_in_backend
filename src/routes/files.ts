@@ -1,11 +1,13 @@
 import AWS from 'aws-sdk';
 import express, { Request, Response } from 'express';
 import multer from 'multer';
+import nodemailer from 'nodemailer';
 import path from 'path';
 import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
 import auth from '../middleware/auth';
 import File from '../models/File';
+import User from '../models/User';
 
 const router = express.Router();
 
@@ -365,5 +367,198 @@ router.delete('/:id', auth, async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Server error while deleting file' });
   }
 });
+
+
+router.post('/:id/share-email', auth, async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    const { emailAddress } = req.body;
+
+    if (!emailAddress) {
+      return res.status(400).json({ message: 'Email address is required' });
+    }
+
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailAddress)) {
+      return res.status(400).json({ message: 'Invalid email format' });
+    }
+
+
+    const file = await File.findById(req.params.id);
+    if (!file) {
+      return res.status(404).json({ message: 'File not found' });
+    }
+
+
+    if (file.creator !== req.user.userId && !file.access.includes(req.user.userId)) {
+      return res.status(403).json({ message: 'You do not have permission to share this file' });
+    }
+
+
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+
+    const transporter = nodemailer.createTransport({
+      host: process.env.MAIL_HOST,
+      port: parseInt(process.env.MAIL_PORT || '587'),
+      secure: process.env.MAIL_SECURE === 'true',
+      auth: {
+        user: process.env.MAIL_USER,
+        pass: process.env.MAIL_PASSWORD,
+      },
+    });
+
+
+    const shareUrl = `${process.env.FRONTEND_URL || 'https://sharein.com'}/${file._id}`;
+
+
+    const emailHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>File Shared With You</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        .container {
+          background-color: #f9f9f9;
+          border-radius: 8px;
+          padding: 25px;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .header {
+          text-align: center;
+          margin-bottom: 20px;
+        }
+        .logo {
+          max-height: 60px;
+          margin-bottom: 15px;
+        }
+        h1 {
+          color: #2c3e50;
+          font-size: 24px;
+          margin: 0;
+        }
+        .file-info {
+          background-color: #ffffff;
+          border-radius: 6px;
+          padding: 15px;
+          margin: 20px 0;
+          border-left: 4px solid #3498db;
+        }
+        .file-name {
+          font-weight: bold;
+          margin-bottom: 5px;
+        }
+        .user-info {
+          color: #666;
+          font-style: italic;
+          margin-bottom: 20px;
+        }
+        .button {
+          display: inline-block;
+          background-color: #3498db;
+          color: white;
+          text-decoration: none;
+          padding: 12px 24px;
+          border-radius: 4px;
+          font-weight: bold;
+          text-align: center;
+        }
+        .button:hover {
+          background-color: #2980b9;
+        }
+        .footer {
+          margin-top: 30px;
+          font-size: 12px;
+          color: #999;
+          text-align: center;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>File Shared With You</h1>
+        </div>
+        
+        <p>Hello,</p>
+        <p><strong>${user.name || user.email}</strong> has shared a file with you on ShareIn.</p>
+        
+        <div class="file-info">
+          <div class="file-name">${file.name}</div>
+          <div class="file-type">Type: ${file.type}</div>
+        </div>
+        
+        <div class="user-info">
+          Shared by: ${user.name || ''} (${user.email})
+        </div>
+        
+        <p>You can access this file by clicking the button below:</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${shareUrl}" class="button">Open File</a>
+        </div>
+        
+        <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+        <p style="word-break: break-all;"><a href="${shareUrl}">${shareUrl}</a></p>
+        
+        <div class="footer">
+          <p>This is an automated email from ShareIn. Please do not reply to this email.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+    `;
+
+
+    const mailOptions = {
+      from: `ShareIn <${process.env.MAIL_FROM || process.env.MAIL_USER}>`,
+      to: emailAddress,
+      subject: `${user.name || user.email} shared a file with you`,
+      html: emailHtml,
+      text: `Hello,
+      
+${user.name || user.email} has shared a file with you on ShareIn.
+
+File: ${file.name}
+Type: ${file.type}
+Shared by: ${user.name || ''} (${user.email})
+
+You can access this file by visiting: ${shareUrl}
+
+This is an automated email from ShareIn. Please do not reply to this email.`,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+
+
+    if (file.creator === req.user.userId && !file.access.includes(emailAddress)) {
+      file.access.push(emailAddress);
+      await file.save();
+    }
+
+    res.status(200).json({ message: 'Email sent successfully' });
+  } catch (error) {
+    console.error('Error sending share email:', error);
+    res.status(500).json({ message: 'Server error while sending email' });
+  }
+});
+
 
 export default router;

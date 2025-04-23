@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const express_1 = __importDefault(require("express"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const auth_1 = __importDefault(require("../middleware/auth"));
 const User_1 = __importDefault(require("../models/User"));
 const router = express_1.default.Router();
 router.get('/profile/:uid', async (req, res) => {
@@ -37,7 +38,7 @@ router.post('/signup', async (req, res) => {
             password: hashedPassword
         });
         await user.save();
-        const token = jsonwebtoken_1.default.sign({ userId: user._id }, process.env.JWT_SECRET || 'fallback-secret', { expiresIn: '1h' });
+        const token = jsonwebtoken_1.default.sign({ userId: user._id, name: user.name, email: user.email }, process.env.JWT_SECRET || 'fallback-secret');
         res.status(201).json({ token });
     }
     catch (error) {
@@ -56,7 +57,7 @@ router.post('/signin', async (req, res) => {
         if (!isValidPassword) {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
-        const token = jsonwebtoken_1.default.sign({ userId: user._id }, process.env.JWT_SECRET || 'fallback-secret');
+        const token = jsonwebtoken_1.default.sign({ userId: user._id, name: user.name, email: user.email }, process.env.JWT_SECRET || 'fallback-secret');
         const refreshToken = jsonwebtoken_1.default.sign({ userId: user._id }, process.env.REFRESH_TOKEN_SECRET || 'refresh-secret');
         res.json({ token, refreshToken });
     }
@@ -79,5 +80,8 @@ router.post('/refresh-token', async (req, res) => {
         console.log(error);
         res.status(401).json({ message: 'Invalid refresh token' });
     }
+});
+router.post('/verify-token', auth_1.default, async (req, res) => {
+    res.sendStatus(200);
 });
 exports.default = router;
