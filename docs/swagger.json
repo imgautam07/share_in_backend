@@ -585,33 +585,12 @@
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "access": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Access updated"
           },
           "401": {
             "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Not creator"
           },
           "404": {
             "description": "File not found"

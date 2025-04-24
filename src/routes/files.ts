@@ -287,38 +287,17 @@ router.put('/:id/access', auth, async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    const { access } = req.body;
-
-    if (!access) {
-      return res.status(400).json({ message: 'Access list required' });
-    }
-
     const file = await File.findById(req.params.id);
 
     if (!file) {
       return res.status(404).json({ message: 'File not found' });
     }
 
-
-    if (file.creator !== req.user.userId) {
-      return res.status(403).json({ message: 'Only the file creator can update access' });
-    }
+    var d = file.access;
+    d.push(req.user.userId);
 
 
-    let accessArray: string[] = [];
-    if (typeof access === 'string') {
-      try {
-
-        accessArray = JSON.parse(access);
-      } catch (e) {
-
-        accessArray = access.split(',').map(id => id.trim());
-      }
-    } else if (Array.isArray(access)) {
-      accessArray = access;
-    }
-
-    file.access = accessArray;
+    file.access = d;
     await file.save();
 
     res.json({ file });
