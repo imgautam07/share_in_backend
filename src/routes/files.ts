@@ -293,11 +293,8 @@ router.put('/:id/access', auth, async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'File not found' });
     }
 
-    var d = file.access;
-    d.push(req.user.userId);
-
-
-    file.access = d;
+    const uniqueAccess = new Set([...file.access, req.user.userId]);
+    file.access = Array.from(uniqueAccess);
     await file.save();
 
     res.json({ file });
